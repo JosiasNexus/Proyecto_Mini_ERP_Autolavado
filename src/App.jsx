@@ -1,4 +1,3 @@
-import React from 'react'
 import './App.css'
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
 import Inicio from './modules/inicio/pages/Inicio'
