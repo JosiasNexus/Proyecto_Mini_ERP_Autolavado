@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import '../styles/LavadoManual.css'
 
 export default function LavadoManual() {
   const [form, setForm] = useState({
     nombre: '',
     apellidoPaterno: '',
     apellidoMaterno: '',
-    placas: '',
     telefono: '',
+    placas: '',
     marca: '',
     modelo: '',
     color: '',
@@ -20,6 +21,14 @@ export default function LavadoManual() {
 
   function handleChange(e) {
     const { name, value } = e.target
+
+    // Normalizar teléfono: solo dígitos y máximo 10
+    if (name === 'telefono') {
+      const digits = value.replace(/\D/g, '').slice(0, 10)
+      setForm((prev) => ({ ...prev, telefono: digits }))
+      return
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -28,8 +37,12 @@ export default function LavadoManual() {
     if (!form.nombre.trim()) newErrors.nombre = 'Nombre requerido'
     if (!form.apellidoPaterno.trim()) newErrors.apellidoPaterno = 'Apellido paterno requerido'
     if (!form.apellidoMaterno.trim()) newErrors.apellidoMaterno = 'Apellido materno requerido'
+    if (!form.telefono.trim()) {
+      newErrors.telefono = 'Teléfono requerido'
+    } else if (!/^\d{10}$/.test(form.telefono)) {
+      newErrors.telefono = 'El número de teléfono debe tener 10 dígitos'
+    }
     if (!form.placas.trim()) newErrors.placas = 'Número de placas requerido'
-    if (!form.telefono.trim()) newErrors.telefono = 'Teléfono requerido'
     if (!form.marca.trim()) newErrors.marca = 'Marca requerida'
     if (!form.modelo.trim()) newErrors.modelo = 'Modelo requerido'
     if (!form.color.trim()) newErrors.color = 'Color requerido'
@@ -54,8 +67,8 @@ export default function LavadoManual() {
       nombre: '',
       apellidoPaterno: '',
       apellidoMaterno: '',
-      placas: '',
       telefono: '',
+      placas: '',
       marca: '',
       modelo: '',
       color: '',
@@ -77,10 +90,10 @@ export default function LavadoManual() {
             <strong>Cliente:</strong> {submittedData.nombre} {submittedData.apellidoPaterno} {submittedData.apellidoMaterno}
           </p>
           <p>
-            <strong>Placas:</strong> {submittedData.placas}
+            <strong>Teléfono:</strong> {submittedData.telefono}
           </p>
           <p>
-            <strong>Teléfono:</strong> {submittedData.telefono}
+            <strong>Placas:</strong> {submittedData.placas}
           </p>
           <p>
             <strong>Vehículo:</strong> {submittedData.marca} {submittedData.modelo} — {submittedData.color} ({submittedData.tipoVehiculo})
@@ -138,6 +151,22 @@ export default function LavadoManual() {
           </div>
 
           <div>
+            <label htmlFor="telefono">Número de teléfono</label>
+            <input
+              id="telefono"
+              name="telefono"
+              type="tel"
+              inputMode="numeric"
+              value={form.telefono}
+              onChange={handleChange}
+              placeholder="5512345678"
+              required
+              maxLength={10}
+            />
+            {errors.telefono && <small style={{ color: 'red' }}>{errors.telefono}</small>}
+          </div>
+
+          <div>
             <label htmlFor="placas">Número de placas</label>
             <input
               id="placas"
@@ -148,20 +177,6 @@ export default function LavadoManual() {
               required
             />
             {errors.placas && <small style={{ color: 'red' }}>{errors.placas}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="telefono">Número de teléfono</label>
-            <input
-              id="telefono"
-              name="telefono"
-              type="tel"
-              value={form.telefono}
-              onChange={handleChange}
-              placeholder="(555) 555-5555"
-              required
-            />
-            {errors.telefono && <small style={{ color: 'red' }}>{errors.telefono}</small>}
           </div>
 
           <div>
@@ -226,13 +241,13 @@ export default function LavadoManual() {
           </div>
 
           <div>
-            <label htmlFor="especificaciones">Especificaciones del vehículo</label>
+            <label htmlFor="especificaciones">Detalles adicionales del vehículo</label>
             <textarea
               id="especificaciones"
               name="especificaciones"
               value={form.especificaciones}
               onChange={handleChange}
-              placeholder="Colocar detalles adicionales, manchas, daños, accesorios, etc."
+              placeholder="manchas, daños, accesorios, etc."
               rows={4}
             />
           </div>
