@@ -7,6 +7,7 @@ import LavadoAutomatico from './modules/lavado-automatico/pages/LavadoAutomatico
 import LavadoSinContacto from './modules/lavado-sin-contacto/pages/LavadoSinContacto'
 
 function App() {
+  const [count, setCount] = useState(0)
 
   return (
     <Router>
