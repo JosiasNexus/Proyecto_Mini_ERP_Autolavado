@@ -142,7 +142,7 @@ export default function LavadoAutomatico() {
     if (stages.length === 0) return null;
 
     const index = Math.floor((progress / 100) * stages.length);
-    return stages[Math.min(index, stages.length - 1)];
+    setCurrentStage(stages[Math.min(index, stages.length - 1)]);
   }, [progress, stages, isProcessing]);
 
   // SIMULAR ENTRADA
