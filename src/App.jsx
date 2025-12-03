@@ -1,25 +1,31 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import React from 'react'
 import './App.css'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import Inicio from './pages/Inicio'
-import LavadoManual from './pages/LavadoManual'
-import LavadoAutomatico from './pages/LavadoAutomatico'
-import LavadoSinContacto from './pages/LavadoSinContacto'
+import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
+import Inicio from './modules/inicio/pages/Inicio'
+import LavadoManual from './modules/lavado-manual/pages/LavadoManual'
+import LavadoAutomatico from './modules/lavado-automatico/pages/LavadoAutomatico'
+import LavadoSinContacto from './modules/lavado-sin-contacto/pages/LavadoSinContacto'
 
 function App() {
-  const [count, setCount] = useState(0)
+  // app-level state removed (unused)
 
   return (
     <Router>
       <header className="header">
         <nav>
           <ul className="nav-list">
-            <li><Link to="/">Inicio</Link></li>
-            <li><Link to="/lavado-manual">Lavado manual</Link></li>
-            <li><Link to="/lavado-automatico">Lavado automático</Link></li>
-            <li><Link to="/lavado-sin-contacto">Lavado sin contacto</Link></li>
+            <li className="nav-item">
+              <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} end>Inicio</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/lavado-manual" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Lavado manual</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/lavado-automatico" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Lavado automático</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/lavado-sin-contacto" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Lavado sin contacto</NavLink>
+            </li>
           </ul>
         </nav>
       </header>
@@ -30,8 +36,6 @@ function App() {
           <Route path="/lavado-manual" element={<LavadoManual />} />
           <Route path="/lavado-automatico" element={<LavadoAutomatico />} />
           <Route path="/lavado-sin-contacto" element={<LavadoSinContacto />} />
-          {/* Ruta fallback opcional */}
-          {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </main>
     </Router>

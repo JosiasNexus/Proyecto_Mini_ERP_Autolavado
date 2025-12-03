@@ -1,0 +1,41 @@
+/* Estilos base para el formulario de LavadoManual */
+form {
+  max-width: 720px;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+input, select, textarea {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #d0d0d0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  background: #1976d2;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button[type="button"] {
+  background: #6c757d;
+}
+
+.service-summary {
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+}

@@ -174,13 +174,7 @@ export default function LavadoAutomatico() {
 
       {/* === PANEL LATERAL === */}
       <div style={{ width: "250px" }}>
-        <h3>Reportes internos</h3>
-
-        <ul>
-          <li>Resumen diario</li>
-          <li>Consumo de insumos</li>
-          <li>Historial de servicios</li>
-        </ul>
+        
 
         <h4>Insumos críticos</h4>
 
