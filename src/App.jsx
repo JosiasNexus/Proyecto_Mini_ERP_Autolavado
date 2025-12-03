@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-do
 import Inicio from './modules/inicio/pages/Inicio'
 import LavadoManual from './modules/lavado-manual/pages/LavadoManual'
 import LavadoAutomatico from './modules/lavado-automatico/pages/LavadoAutomatico'
-import LavadoSinContacto from './modules/lavado-sin-contacto/pages/LavadoSinContacto'
+import Reportes from './modules/reportes/pages/Reportes'
 
 function App() {
   
@@ -22,7 +22,7 @@ function App() {
               <NavLink to="/lavado-automatico" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Lavado automático</NavLink>
             </li>
             <li className="nav-item">
-              <NavLink to="/lavado-sin-contacto" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Lavado sin contacto</NavLink>
+              <NavLink to="/reportes" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Reportes</NavLink>
             </li>
           </ul>
         </nav>
@@ -33,7 +33,7 @@ function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/lavado-manual" element={<LavadoManual />} />
           <Route path="/lavado-automatico" element={<LavadoAutomatico />} />
-          <Route path="/lavado-sin-contacto" element={<LavadoSinContacto />} />
+          <Route path="/reportes" element={<Reportes />} />
         </Routes>
       </main>
     </Router>
