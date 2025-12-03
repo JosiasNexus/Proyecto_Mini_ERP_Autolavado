@@ -1,265 +1,278 @@
 import { useState } from 'react'
 import '../styles/LavadoManual.css'
 
+const STEPS = ['Prelavado', 'Espumado', 'Enjuague', 'Secado']
+
+function uid() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function nowStr() {
+  return new Date().toLocaleTimeString()
+}
+
 export default function LavadoManual() {
-  const [form, setForm] = useState({
-    nombre: '',
-    apellidoPaterno: '',
-    apellidoMaterno: '',
-    telefono: '',
-    placas: '',
-    marca: '',
-    modelo: '',
-    color: '',
-    tipoVehiculo: '',
-    especificaciones: '',
+  const [stations, setStations] = useState(() => {
+    // Initialize 4 stations for the demo
+    return Array.from({ length: 4 }, (_, i) => ({
+      id: i + 1,
+      name: `Estación ${i + 1}`,
+      status: 'Disponible', // Disponible, Ocupada, En limpieza, En mantenimiento, Fuera de servicio
+      vehicleId: null,
+      ingreso: null,
+      inicio: null,
+      step: -1,
+      duration: 0,
+    }))
   })
 
-  const [errors, setErrors] = useState({})
-  const [servicioIniciado, setServicioIniciado] = useState(false)
-  const [submittedData, setSubmittedData] = useState(null)
+  const [supplies, setSupplies] = useState({
+    shampoo: 100,
+    cera: 100,
+    paños: 100,
+    agua: 100,
+  })
 
-  function handleChange(e) {
-    const { name, value } = e.target
+  const [logs, setLogs] = useState([])
 
-    // Normalizar teléfono: solo dígitos y máximo 10
-    if (name === 'telefono') {
-      const digits = value.replace(/\D/g, '').slice(0, 10)
-      setForm((prev) => ({ ...prev, telefono: digits }))
+  function addLog(text) {
+    setLogs((l) => [{ time: new Date().toISOString(), text }, ...l].slice(0, 50))
+  }
+
+  // RF-2: Simulate vehicle entry, auto-assign to first available station
+  function simulateEntry() {
+    const idx = stations.findIndex((s) => s.status === 'Disponible')
+    if (idx === -1) {
+      addLog('No hay estaciones disponibles para simular una entrada')
       return
     }
-
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  function validate() {
-    const newErrors = {}
-    if (!form.nombre.trim()) newErrors.nombre = 'Nombre requerido'
-    if (!form.apellidoPaterno.trim()) newErrors.apellidoPaterno = 'Apellido paterno requerido'
-    if (!form.apellidoMaterno.trim()) newErrors.apellidoMaterno = 'Apellido materno requerido'
-    if (!form.telefono.trim()) {
-      newErrors.telefono = 'Teléfono requerido'
-    } else if (!/^\d{10}$/.test(form.telefono)) {
-      newErrors.telefono = 'El número de teléfono debe tener 10 dígitos'
-    }
-    if (!form.placas.trim()) newErrors.placas = 'Número de placas requerido'
-    if (!form.marca.trim()) newErrors.marca = 'Marca requerida'
-    if (!form.modelo.trim()) newErrors.modelo = 'Modelo requerido'
-    if (!form.color.trim()) newErrors.color = 'Color requerido'
-    if (!form.tipoVehiculo.trim()) newErrors.tipoVehiculo = 'Tipo de vehículo requerido'
-    return newErrors
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    const validation = validate()
-    setErrors(validation)
-    if (Object.keys(validation).length === 0) {
-      setServicioIniciado(true)
-      setSubmittedData(form)
-      console.log('Servicio iniciado:', form)
-      // Aquí podrías enviar datos al servidor con fetch/axios
-    }
-  }
-
-  function handleReset() {
-    setForm({
-      nombre: '',
-      apellidoPaterno: '',
-      apellidoMaterno: '',
-      telefono: '',
-      placas: '',
-      marca: '',
-      modelo: '',
-      color: '',
-      tipoVehiculo: '',
-      especificaciones: '',
+    const vehicleId = `V-${uid().toUpperCase()}`
+    const updated = stations.map((s, i) => {
+      if (i === idx) {
+        return {
+          ...s,
+          status: 'Ocupada',
+          vehicleId,
+          ingreso: new Date().toISOString(),
+        }
+      }
+      return s
     })
-    setErrors({})
-    setServicioIniciado(false)
-    setSubmittedData(null)
+    setStations(updated)
+    addLog(`Entrada simulada: ${vehicleId} asignado a ${stations[idx].name}`)
   }
+
+  // Simulate entry to a specific station
+  function simulateEntryToStation(stationId) {
+    const idx = stations.findIndex((s) => s.id === stationId)
+    if (idx === -1) return
+    const s = stations[idx]
+    if (s.status !== 'Disponible') {
+      addLog(`No se puede simular entrada en ${s.name} porque no está disponible`)
+      return
+    }
+    const vehicleId = `V-${uid().toUpperCase()}`
+    setStations((prev) =>
+      prev.map((st) => (st.id === stationId ? { ...st, status: 'Ocupada', vehicleId, ingreso: new Date().toISOString() } : st)),
+    )
+    addLog(`Entrada simulada: ${vehicleId} asignado a ${s.name}`)
+  }
+
+  // Start the manual washing process for a station (RF-4 sub-process enable)
+  function startWash(stationId) {
+    setStations((prev) =>
+      prev.map((s) => {
+        if (s.id !== stationId) return s
+        if (s.status !== 'Ocupada') return s
+        return {
+          ...s,
+          inicio: new Date().toISOString(),
+          step: 0,
+        }
+      }),
+    )
+    addLog(`Lavado iniciado en estación ${stationId}`)
+  }
+
+  // Progress to next step or finalize
+  function nextStep(stationId) {
+    const st = stations.find((s) => s.id === stationId)
+    if (!st || st.status !== 'Ocupada') return
+    if (st.step === -1) return // not started
+
+    if (st.step < STEPS.length - 1) {
+      setStations((prev) =>
+        prev.map((s) => (s.id === stationId ? { ...s, step: s.step + 1 } : s)),
+      )
+      addLog(`Estación ${stationId}: ${STEPS[st.step + 1]}`)
+    } else {
+      // finalize
+      finalizeService(stationId)
+    }
+  }
+
+  // RF-6: Finalizar servicio, record duration, consumos y set estado a En limpieza
+  function finalizeService(stationId) {
+    const end = new Date()
+    setStations((prev) =>
+      prev.map((s) => {
+        if (s.id !== stationId) return s
+        const inicio = s.inicio ? new Date(s.inicio) : null
+        const duration = inicio ? Math.max(1, Math.round((end - inicio) / 1000)) : 0
+        return {
+          ...s,
+          status: 'En limpieza',
+          step: -1,
+          duration,
+          vehicleId: null,
+          ingreso: null,
+          inicio: null,
+        }
+      }),
+    )
+
+    // Simulate consumos
+    setSupplies((prev) => {
+      const consumption = {
+        shampoo: Math.round(5 + Math.random() * 10),
+        cera: Math.round(2 + Math.random() * 6),
+        paños: Math.round(1 + Math.random() * 4),
+        agua: Math.round(10 + Math.random() * 15),
+      }
+      const result = {
+        shampoo: Math.max(0, prev.shampoo - consumption.shampoo),
+        cera: Math.max(0, prev.cera - consumption.cera),
+        paños: Math.max(0, prev.paños - consumption.paños),
+        agua: Math.max(0, prev.agua - consumption.agua),
+      }
+      addLog(`Servicio finalizado en Estación ${stationId}. Consumo: shampoo ${consumption.shampoo}%, cera ${consumption.cera}%, paños ${consumption.paños}%, agua ${consumption.agua}%`)
+      return result
+    })
+  }
+
+  // Action to set station back to available after limpieza
+  function restoreStation(stationId) {
+    setStations((prev) => prev.map((s) => (s.id === stationId ? { ...s, status: 'Disponible' } : s)))
+    addLog(`Estación ${stationId} restablecida a Disponible`)
+  }
+
+  // Quick helpers to set station status (e.g., mantenimiento)
+  function setStationStatus(stationId, newStatus) {
+    setStations((prev) => prev.map((s) => (s.id === stationId ? { ...s, status: newStatus } : s)))
+    addLog(`Estación ${stationId} actualizada a estado ${newStatus}`)
+  }
+
+  function getAvailabilityNumbers() {
+    const counts = stations.reduce(
+      (acc, s) => {
+        acc[s.status] = (acc[s.status] || 0) + 1
+        return acc
+      },
+      { Disponible: 0, Ocupada: 0, 'En limpieza': 0, 'En mantenimiento': 0, 'Fuera de servicio': 0 },
+    )
+    return counts
+  }
+
+  const availability = getAvailabilityNumbers()
+
+  const anyLow = Object.values(supplies).some((v) => v <= 20)
 
   return (
-    <div>
-      <h2>Lavado manual</h2>
-      {servicioIniciado && submittedData ? (
-        <div className="service-summary">
-          <h3>Servicio iniciado</h3>
-          <p>
-            <strong>Cliente:</strong> {submittedData.nombre} {submittedData.apellidoPaterno} {submittedData.apellidoMaterno}
-          </p>
-          <p>
-            <strong>Teléfono:</strong> {submittedData.telefono}
-          </p>
-          <p>
-            <strong>Placas:</strong> {submittedData.placas}
-          </p>
-          <p>
-            <strong>Vehículo:</strong> {submittedData.marca} {submittedData.modelo} — {submittedData.color} ({submittedData.tipoVehiculo})
-          </p>
-          {submittedData.especificaciones && (
-            <p>
-              <strong>Especificaciones:</strong> {submittedData.especificaciones}
-            </p>
-          )}
-          <div style={{ marginTop: 8 }}>
-            <button type="button" onClick={handleReset}>
-              Nuevo servicio
-            </button>
-          </div>
+    <div className="lavado-manual-root">
+      <header className="header">
+        <h2>Lavado Manual</h2>
+        <div className="header-actions">
+          <button onClick={simulateEntry}>Simular Entrada de Vehículo</button>
+          <button onClick={() => addLog('Panel recargado manualmente')}>Recargar Panel</button>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} noValidate>
-          <div>
-            <label htmlFor="nombre">Nombre de Cliente</label>
-            <input
-              id="nombre"
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              placeholder="Nombre"
-              required
-            />
-            {errors.nombre && <small style={{ color: 'red' }}>{errors.nombre}</small>}
+      </header>
+
+      {anyLow && <div className="supply-alert">⚠️ Atención: Algunos insumos están por debajo del 20%</div>}
+      <main className="main-grid">
+        <aside className="side-panel">
+          <div className="supply-panel">
+            <h3>Insumos</h3>
+            {Object.entries(supplies).map(([k, v]) => (
+              <div key={k} className="supply-row">
+                <div className="supply-label">{k}</div>
+                <div className="supply-bar">
+                  <div className={`supply-progress ${v <= 20 ? 'low' : ''}`} style={{ width: `${v}%` }} />
+                </div>
+                <div className="supply-value">{v}%</div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section className="center-panel">
+          <div className="availability">
+            <div className="availability-item">Disponibles: <strong>{availability.Disponible}</strong></div>
+            <div className="availability-item">Ocupadas: <strong>{availability.Ocupada}</strong></div>
+            <div className="availability-item">En limpieza: <strong>{availability['En limpieza']}</strong></div>
+            <div className="availability-item">Mantenimiento: <strong>{availability['En mantenimiento']}</strong></div>
           </div>
 
-          <div>
-            <label htmlFor="apellidoPaterno">Apellido paterno</label>
-            <input
-              id="apellidoPaterno"
-              name="apellidoPaterno"
-              value={form.apellidoPaterno}
-              onChange={handleChange}
-              placeholder="Apellido paterno"
-              required
-            />
-            {errors.apellidoPaterno && <small style={{ color: 'red' }}>{errors.apellidoPaterno}</small>}
-          </div>
+          <div className="stations-grid">
+            {stations.map((s) => (
+              <div key={s.id} className={`station-card ${s.status.replace(/\s+/g, '-').toLowerCase()}`}>
+                <div className="station-header">
+                  <div className="station-name">{s.name}</div>
+                  <div className="station-status">{s.status}</div>
+                </div>
+                {s.vehicleId ? (
+                  <div className="station-vehicle">Vehículo: <strong>{s.vehicleId}</strong></div>
+                ) : (
+                  <div className="station-empty">Sin vehículo</div>
+                )}
 
-          <div>
-            <label htmlFor="apellidoMaterno">Apellido materno</label>
-            <input
-              id="apellidoMaterno"
-              name="apellidoMaterno"
-              value={form.apellidoMaterno}
-              onChange={handleChange}
-              placeholder="Apellido materno"
-              required
-            />
-            {errors.apellidoMaterno && <small style={{ color: 'red' }}>{errors.apellidoMaterno}</small>}
+                {s.ingreso && (
+                  <div className="station-ingreso">Ingreso: {new Date(s.ingreso).toLocaleTimeString()}</div>
+                )}
+                {s.inicio && (
+                  <div className="station-inicio">Inicio: {new Date(s.inicio).toLocaleTimeString()}</div>
+                )}
+                <div className="station-actions">
+                  {s.status === 'Disponible' && (
+                    <>
+                      <button onClick={() => simulateEntryToStation(s.id)}>Simular Entrada</button>
+                      <div style={{ marginTop: 6 }}>
+                        <button onClick={() => setStationStatus(s.id, 'Fuera de servicio')}>Fuera de servicio</button>
+                        <button onClick={() => setStationStatus(s.id, 'En mantenimiento')} style={{ marginLeft: 8 }}>
+                          Poner mantenimiento
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {s.status === 'Ocupada' && !s.inicio && (
+                    <button onClick={() => startWash(s.id)}>Iniciar Lavado Manual</button>
+                  )}
+                  {s.status === 'Ocupada' && s.inicio && (
+                    <>
+                      <div className="station-step">Paso: {s.step >= 0 ? STEPS[s.step] : 'Pendiente'}</div>
+                      <button onClick={() => nextStep(s.id)}>
+                        {s.step < STEPS.length - 1 ? 'Siguiente Paso' : 'Finalizar Servicio'}
+                      </button>
+                    </>
+                  )}
+                  {s.status === 'En limpieza' && (
+                    <button onClick={() => restoreStation(s.id)}>Finalizar Limpieza (Disponible)</button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
+        </section>
 
-          <div>
-            <label htmlFor="telefono">Número de teléfono</label>
-            <input
-              id="telefono"
-              name="telefono"
-              type="tel"
-              inputMode="numeric"
-              value={form.telefono}
-              onChange={handleChange}
-              placeholder="5512345678"
-              required
-              maxLength={10}
-            />
-            {errors.telefono && <small style={{ color: 'red' }}>{errors.telefono}</small>}
+        <aside className="log-panel">
+          <h3>Registro de eventos</h3>
+          <div className="logs">
+            {logs.length === 0 && <div>No hay eventos recientes</div>}
+            {logs.map((l) => (
+              <div key={l.time} className="log-item">{new Date(l.time).toLocaleTimeString()} — {l.text}</div>
+            ))}
           </div>
-
-          <div>
-            <label htmlFor="placas">Número de placas</label>
-            <input
-              id="placas"
-              name="placas"
-              value={form.placas}
-              onChange={handleChange}
-              placeholder="ABC-1234"
-              required
-            />
-            {errors.placas && <small style={{ color: 'red' }}>{errors.placas}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="marca">Marca del vehículo</label>
-            <input
-              id="marca"
-              name="marca"
-              value={form.marca}
-              onChange={handleChange}
-              placeholder="Toyota, Ford, etc."
-              required
-            />
-            {errors.marca && <small style={{ color: 'red' }}>{errors.marca}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="modelo">Modelo del vehículo</label>
-            <input
-              id="modelo"
-              name="modelo"
-              value={form.modelo}
-              onChange={handleChange}
-              placeholder="Corolla, Civic, etc."
-              required
-            />
-            {errors.modelo && <small style={{ color: 'red' }}>{errors.modelo}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="color">Color del vehículo</label>
-            <input
-              id="color"
-              name="color"
-              value={form.color}
-              onChange={handleChange}
-              placeholder="Rojo, Blanco, etc."
-              required
-            />
-            {errors.color && <small style={{ color: 'red' }}>{errors.color}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="tipoVehiculo">Tipo de vehículo</label>
-            <select
-              id="tipoVehiculo"
-              name="tipoVehiculo"
-              value={form.tipoVehiculo}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecciona...</option>
-              <option value="sedan">Sedán</option>
-              <option value="minivan">Minivan</option>
-              <option value="suv">SUV</option>
-              <option value="hatchback">Hatchback</option>
-              <option value="coupe">Coupe</option>
-              <option value="sport">Sport</option>
-              <option value="camioneta pickup">Camioneta pickup</option>
-              <option value="van">VAN</option>
-            </select>
-            {errors.tipoVehiculo && <small style={{ color: 'red' }}>{errors.tipoVehiculo}</small>}
-          </div>
-
-          <div>
-            <label htmlFor="especificaciones">Detalles adicionales del vehículo</label>
-            <textarea
-              id="especificaciones"
-              name="especificaciones"
-              value={form.especificaciones}
-              onChange={handleChange}
-              placeholder="manchas, daños, accesorios, etc."
-              rows={4}
-            />
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <button type="submit">Inicio de servicio</button>
-            <button type="button" onClick={handleReset} style={{ marginLeft: 8 }}>
-              Limpiar
-            </button>
-          </div>
-        </form>
-      )}
+        </aside>
+      </main>
     </div>
   )
 }

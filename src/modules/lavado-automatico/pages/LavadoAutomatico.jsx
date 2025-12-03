@@ -107,7 +107,27 @@ export default function LavadoAutomatico() {
     }, 1800);
   };
 
-  // === EFECTO GLOBAL PARA TODAS LAS ESTACIONES ===
+  // === PONER EN MANTENIMIENTO ===
+  const ponerMantenimiento = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+
+      if (e[i].isProcessing) return prev;
+
+      e[i].tunnelState = "Mantenimiento";
+      e[i].vehicleId = null;
+      e[i].progress = 0;
+      e[i].currentStage = "";
+      e[i].sensors.ocupacion = "0%";
+      e[i].sensors.entrada = "Libre";
+      e[i].sensors.salida = "Libre";
+
+      log(`Estación ${i + 1} se puso en Mantenimiento`);
+      return e;
+    });
+  };
+
+  // === EFECTO GLOBAL ===
   useEffect(() => {
     const interval = setInterval(() => {
       setEstaciones(prev => {
@@ -137,13 +157,13 @@ export default function LavadoAutomatico() {
     return () => clearInterval(interval);
   }, []);
 
-  // === CONTADORES (para badges superiores) ===
+  // === CONTADORES ===
   const countDisponible = estaciones.filter(e => e.tunnelState === "Disponible").length;
   const countOcupado = estaciones.filter(e => e.tunnelState === "Ocupado").length;
   const countLimpieza = estaciones.filter(e => e.tunnelState === "En limpieza").length;
   const countMantenimiento = estaciones.filter(e => e.tunnelState === "Mantenimiento").length;
 
-  // === ESTILOS DEL PANEL ===
+  // === ESTILOS ===
   const styles = {
     box: {
       border: "1px solid #ddd",
@@ -174,16 +194,9 @@ export default function LavadoAutomatico() {
 
       {/* === PANEL LATERAL === */}
       <div style={{ width: "250px" }}>
-        
-
         <h4>Insumos críticos</h4>
 
-        {[
-          ["Shampoo", 88],
-          ["Cera", 95],
-          ["Panos", 99],
-          ["Agua", 81]
-        ].map(([n, v]) => (
+        {[["Shampoo", 88], ["Cera", 95], ["Panos", 99], ["Agua", 81]].map(([n, v]) => (
           <div key={n}>
             <span>{n} {v}%</span>
             <div style={{ height: "6px", background: "#eee", borderRadius: "4px" }}>
@@ -196,7 +209,6 @@ export default function LavadoAutomatico() {
             </div>
           </div>
         ))}
-
       </div>
 
       {/* === PANEL CENTRAL === */}
@@ -210,7 +222,7 @@ export default function LavadoAutomatico() {
           <span><strong>Mantenimiento:</strong> {countMantenimiento}</span>
         </div>
 
-        {/* === CUATRO ESTACIONES === */}
+        {/* === ESTACIONES === */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2,1fr)",
@@ -256,6 +268,14 @@ export default function LavadoAutomatico() {
                 onClick={() => cancelar(i)}
               >
                 Cancelar
+              </button>
+
+              <button
+                style={{ ...styles.button, background: "#b30000" }}
+                disabled={e.isProcessing}
+                onClick={() => ponerMantenimiento(i)}
+              >
+                Mantenimiento
               </button>
 
               {/* PROCESO */}
