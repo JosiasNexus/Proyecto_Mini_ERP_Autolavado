@@ -1,290 +1,306 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect } from "react";
 
 export default function LavadoAutomatico() {
-  // ESTADOS PRINCIPALES
-  const [tunnelState, setTunnelState] = useState("Disponible");
-  const [vehicleId, setVehicleId] = useState(null);
-  const [washType, setWashType] = useState("");
-  // currentStage is derived from progress/stages and isProcessing
-  const [progress, setProgress] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // DATOS DEL CLIENTE Y VEHÍCULO
-  const [cliente, setCliente] = useState({
-    nombre: "",
-    apellidos: "",
-    placas: "",
-    telefono: "",
-    marca: "",
-    modelo: "",
-    color: "",
-    tipoVehiculo: ""
+  // === CREAR ESTACIÓN ===
+  const crearEstacion = () => ({
+    tunnelState: "Disponible",
+    vehicleId: null,
+    progress: 0,
+    isProcessing: false,
+    currentStage: "",
+    sensors: {
+      entrada: "Libre",
+      salida: "Libre",
+      ocupacion: "0%",
+      temperatura: "28°C",
+      nivelAgua: "75%"
+    }
   });
 
-  // SENSORES
-  const [sensors, setSensors] = useState({
-    entrada: "Libre",
-    salida: "Libre",
-    ocupacion: "0%",
-    temperatura: "28°C",
-    nivelAgua: "75%"
-  });
+  // === ESTADO GENERAL ===
+  const [estaciones, setEstaciones] = useState([
+    crearEstacion(),
+    crearEstacion(),
+    crearEstacion(),
+    crearEstacion()
+  ]);
 
-  // ETAPAS
-  const stages = useMemo(
-    () =>
-      [
-        "Prelavado",
-        "Aplicación de espuma",
-        "Rodillos",
-        "Enjuague a presión",
-        washType === "premium" || washType === "encerado" ? "Aplicación de cera" : null,
-        "Secado automático"
-      ].filter(Boolean),
-    [washType]
-  );
+  const [eventos, setEventos] = useState([]);
 
-  // VALIDACIÓN COMPLETA
-  const validarCampos = () => {
-    const { nombre, apellidos, placas, telefono, marca, modelo, color, tipoVehiculo } = cliente;
+  const stages = [
+    "Prelavado",
+    "Aplicación de espuma",
+    "Rodillos",
+    "Enjuague a presión",
+    "Secado automático"
+  ];
 
-    const soloLetras = /^[a-zA-ZÁÉÍÓÚÑáéíóúñ ]+$/;
-    if (!nombre.trim()) return "El nombre es obligatorio.";
-    if (!soloLetras.test(nombre)) return "El nombre solo puede contener letras.";
-
-    if (!apellidos.trim()) return "Los apellidos son obligatorios.";
-    if (!soloLetras.test(apellidos)) return "Los apellidos solo pueden contener letras.";
-
-    const regexPlacas = /^[A-Z0-9-]{5,10}$/i;
-    if (!placas.trim()) return "El número de placas es obligatorio.";
-    if (!regexPlacas.test(placas)) return "Formato de placas inválido.";
-
-    const regexTelefono = /^[0-9]{10}$/;
-    if (!telefono.trim()) return "El número de teléfono es obligatorio.";
-    if (!regexTelefono.test(telefono)) return "El teléfono debe tener 10 dígitos.";
-
-    if (!marca.trim()) return "La marca del vehículo es obligatoria.";
-    if (!modelo.trim()) return "El modelo del vehículo es obligatorio.";
-    if (!color.trim()) return "El color del vehículo es obligatorio.";
-    if (!tipoVehiculo.trim()) return "El tipo de vehículo es obligatorio.";
-
-    return null;
+  // === REGISTRAR EVENTOS ===
+  const log = (texto) => {
+    setEventos((prev) => [
+      { time: new Date().toLocaleTimeString(), text: texto },
+      ...prev
+    ]);
   };
 
-  // SIMULACIÓN DE AVANCE
-  // Guardamos una marca para evitar duplicados en finalización
-  
+  // === SIMULAR ENTRADA ===
+  const simularEntrada = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+      if (e[i].tunnelState !== "Disponible") return prev;
 
-  // FINALIZAR SERVICIO
-  const finishService = () => {
-    if (finishingRef.current) return;
-    finishingRef.current = true;
+      e[i].vehicleId = "TUN-" + Math.floor(Math.random() * 9999);
+      e[i].tunnelState = "Ocupado";
+      e[i].sensors.entrada = "Detectado";
+      e[i].sensors.ocupacion = "100%";
 
-    setTunnelState("En limpieza");
+      log(`Vehículo entró en Estación ${i + 1}`);
+      return e;
+    });
+  };
 
-    setSensors((s) => ({
-      ...s,
-      salida: "Vehículo salido",
-      ocupacion: "0%"
-    }));
+  // === INICIAR LAVADO ===
+  const iniciarLavado = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+      if (!e[i].vehicleId) return prev;
+
+      e[i].isProcessing = true;
+      e[i].progress = 0;
+      e[i].currentStage = stages[0];
+
+      log(`Lavado iniciado en Estación ${i + 1}`);
+      return e;
+    });
+  };
+
+  // === CANCELAR ===
+  const cancelar = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+      e[i].isProcessing = false;
+      e[i].progress = 0;
+      e[i].currentStage = "";
+      log(`Lavado cancelado en Estación ${i + 1}`);
+      return e;
+    });
+  };
+
+  // === FINALIZAR ===
+  const finalizar = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+      e[i].tunnelState = "En limpieza";
+      e[i].sensors.salida = "Saliendo";
+      e[i].sensors.ocupacion = "0%";
+      log(`Lavado finalizado en Estación ${i + 1}`);
+      return e;
+    });
 
     setTimeout(() => {
-      finishingRef.current = false;
-      setTunnelState("Disponible");
-      setVehicleId(null);
-      setProgress(0);
-      setIsProcessing(false);
-      setWashType("");
-
-      setCliente({
-        nombre: "",
-        apellidos: "",
-        placas: "",
-        telefono: "",
-        marca: "",
-        modelo: "",
-        color: "",
-        tipoVehiculo: ""
+      setEstaciones(prev => {
+        const e = [...prev];
+        e[i] = crearEstacion();
+        log(`Estación ${i + 1} ahora está Disponible`);
+        return e;
       });
-
-      setSensors({
-        entrada: "Libre",
-        salida: "Libre",
-        ocupacion: "0%",
-        temperatura: "28°C",
-        nivelAgua: "75%"
-      });
-    }, 2000);
+    }, 1800);
   };
 
+  // === EFECTO GLOBAL PARA TODAS LAS ESTACIONES ===
   useEffect(() => {
-    if (!isProcessing) return;
+    const interval = setInterval(() => {
+      setEstaciones(prev => {
+        const e = [...prev];
 
-    let interval = setInterval(() => {
-      setProgress((p) => {
-        const step = 2;
-        const next = Math.min(p + step, 100);
-        if (next >= 100) {
-          clearInterval(interval);
-          finishService();
-          return 100;
-        }
-        return next;
+        e.forEach((est, i) => {
+          if (!est.isProcessing) return;
+
+          let next = est.progress + 2;
+
+          if (next >= 100) {
+            finalizar(i);
+            next = 100;
+            est.isProcessing = false;
+          } else {
+            const idx = Math.floor((next / 100) * stages.length);
+            est.currentStage = stages[Math.min(idx, stages.length - 1)];
+          }
+
+          est.progress = next;
+        });
+
+        return e;
       });
     }, 200);
 
     return () => clearInterval(interval);
-  }, [isProcessing]);
+  }, []);
 
-  // Etapa actual derivada
-  const currentStage = useMemo(() => {
-    if (!isProcessing) return null;
-    if (stages.length === 0) return null;
+  // === CONTADORES (para badges superiores) ===
+  const countDisponible = estaciones.filter(e => e.tunnelState === "Disponible").length;
+  const countOcupado = estaciones.filter(e => e.tunnelState === "Ocupado").length;
+  const countLimpieza = estaciones.filter(e => e.tunnelState === "En limpieza").length;
+  const countMantenimiento = estaciones.filter(e => e.tunnelState === "Mantenimiento").length;
 
-    const index = Math.floor((progress / 100) * stages.length);
-    setCurrentStage(stages[Math.min(index, stages.length - 1)]);
-  }, [progress, stages, isProcessing]);
-
-  // SIMULAR ENTRADA
-  const simularEntrada = () => {
-    const id = "TUN-" + Math.floor(Math.random() * 9999);
-    setVehicleId(id);
-    setTunnelState("Ocupado");
-
-    setSensors((s) => ({
-      ...s,
-      entrada: "Vehículo detectado",
-      ocupacion: "100%"
-    }));
-  };
-
-  // CANCELAR PROCESO
-  const cancelProcesamiento = () => {
-    if (!isProcessing) return;
-
-    setIsProcessing(false);
-    setProgress(0);
-
-    setSensors((s) => ({ ...s, salida: "Libre", ocupacion: "100%" }));
-    setTunnelState("Ocupado");
-  };
-
-  const finishingRef = useRef(false);
-
-  // INICIAR LAVADO
-  const iniciarLavado = () => {
-    const error = validarCampos();
-    if (error) {
-      alert(error);
-      return;
+  // === ESTILOS DEL PANEL ===
+  const styles = {
+    box: {
+      border: "1px solid #ddd",
+      borderRadius: "8px",
+      padding: "10px",
+      marginBottom: "10px",
+      background: "white"
+    },
+    badge: {
+      Disponible: { background: "#d4f8d4", color: "#2b6e2b" },
+      Ocupado: { background: "#ffe9b3", color: "#a66b00" },
+      "En limpieza": { background: "#ffd5d5", color: "#b30000" },
+      Mantenimiento: { background: "#cfcfcf", color: "#333" }
+    },
+    button: {
+      background: "#0d6efd",
+      color: "white",
+      border: "none",
+      padding: "6px 10px",
+      borderRadius: "6px",
+      cursor: "pointer",
+      marginTop: "6px"
     }
-
-    if (!vehicleId) return alert("No hay vehículo en el túnel");
-    if (tunnelState !== "Ocupado") return alert("El túnel no está listo");
-    if (!washType) return alert("Selecciona un tipo de lavado");
-
-    setProgress(0);
-    // currentStage is derived from progress/stages
-    setIsProcessing(true);
   };
-
-  // finishService moved above so effect can call it safely
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Lavado Automático</h2>
-      <h3>Estado del túnel: {tunnelState}</h3>
+    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
 
-      <button disabled={tunnelState !== "Disponible"} onClick={simularEntrada}>
-        Simular Entrada de Vehículo
-      </button>
+      {/* === PANEL LATERAL === */}
+      <div style={{ width: "250px" }}>
+        <h3>Reportes internos</h3>
 
-      {vehicleId && (
-        <div>
-          <p><strong>Vehículo ID:</strong> {vehicleId}</p>
+        <ul>
+          <li>Resumen diario</li>
+          <li>Consumo de insumos</li>
+          <li>Historial de servicios</li>
+        </ul>
 
-          <h3>Datos del Cliente y Vehículo</h3>
+        <h4>Insumos críticos</h4>
 
-          {/* FORMULARIO DE CLIENTE */}
-          {[
-            ["nombre", "Nombre"],
-            ["apellidos", "Apellidos"],
-            ["placas", "Placas"],
-            ["telefono", "Teléfono"],
-            ["marca", "Marca"],
-            ["modelo", "Modelo"],
-            ["color", "Color"],
-            ["tipoVehiculo", "Tipo de Vehículo"]
-          ].map(([field, label]) => (
-            <div key={field} style={{ marginBottom: "5px" }}>
-              <label>{label}: </label>
-              <input
-                type="text"
-                value={cliente[field]}
-                disabled={isProcessing}
-                onChange={(e) =>
-                  setCliente((prev) => ({ ...prev, [field]: e.target.value }))
-                }
-              />
+        {[
+          ["Shampoo", 88],
+          ["Cera", 95],
+          ["Panos", 99],
+          ["Agua", 81]
+        ].map(([n, v]) => (
+          <div key={n}>
+            <span>{n} {v}%</span>
+            <div style={{ height: "6px", background: "#eee", borderRadius: "4px" }}>
+              <div style={{
+                width: `${v}%`,
+                height: "100%",
+                background: "#28a745",
+                borderRadius: "4px"
+              }} />
+            </div>
+          </div>
+        ))}
+
+      </div>
+
+      {/* === PANEL CENTRAL === */}
+      <div style={{ flex: 1 }}>
+        <h2>Lavado Automático</h2>
+
+        <div style={{ display: "flex", gap: "15px", marginBottom: "15px" }}>
+          <span><strong>Disponibles:</strong> {countDisponible}</span>
+          <span><strong>Ocupadas:</strong> {countOcupado}</span>
+          <span><strong>En limpieza:</strong> {countLimpieza}</span>
+          <span><strong>Mantenimiento:</strong> {countMantenimiento}</span>
+        </div>
+
+        {/* === CUATRO ESTACIONES === */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2,1fr)",
+          gap: "15px"
+        }}>
+          {estaciones.map((e, i) => (
+            <div key={i} style={styles.box}>
+              <h3>Estación {i + 1}</h3>
+
+              <span
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  ...styles.badge[e.tunnelState]
+                }}
+              >
+                {e.tunnelState}
+              </span>
+
+              <p>{e.vehicleId ? `Vehículo: ${e.vehicleId}` : "Sin vehículo"}</p>
+
+              {/* BOTONES */}
+              <button
+                style={styles.button}
+                disabled={e.tunnelState !== "Disponible"}
+                onClick={() => simularEntrada(i)}
+              >
+                Simular Entrada
+              </button>
+
+              <button
+                style={styles.button}
+                disabled={!e.vehicleId || e.isProcessing}
+                onClick={() => iniciarLavado(i)}
+              >
+                Iniciar Lavado
+              </button>
+
+              <button
+                style={{ ...styles.button, background: "#6c757d" }}
+                disabled={!e.isProcessing}
+                onClick={() => cancelar(i)}
+              >
+                Cancelar
+              </button>
+
+              {/* PROCESO */}
+              {e.isProcessing && (
+                <div>
+                  <p><strong>Etapa:</strong> {e.currentStage}</p>
+                  <div style={{ height: "12px", background: "#eee" }}>
+                    <div style={{
+                      width: `${e.progress}%`,
+                      height: "12px",
+                      background: "#28a745"
+                    }} />
+                  </div>
+                  <p>Progreso: {e.progress}%</p>
+                </div>
+              )}
+
             </div>
           ))}
-
-          {/* TIPO DE LAVADO */}
-          <label>Tipo de Lavado:</label>
-          <select
-            value={washType}
-            onChange={(e) => setWashType(e.target.value)}
-            disabled={isProcessing}
-          >
-            <option value="">Seleccione</option>
-            <option value="basico">Básico</option>
-            <option value="premium">Premium</option>
-            <option value="encerado">Con Encerado</option>
-            <option value="express">Express</option>
-          </select>
-
-          <br /><br />
-
-          <button disabled={isProcessing} onClick={iniciarLavado}>
-            Iniciar Lavado Automático
-          </button>
-
-          <button
-            disabled={!isProcessing}
-            onClick={cancelProcesamiento}
-            style={{ marginLeft: "10px" }}
-          >
-            Cancelar
-          </button>
-
-          {/* PROCESO */}
-          {isProcessing && (
-            <div>
-              <h3>Etapa actual: {currentStage}</h3>
-              <div style={{ width: "300px", border: "1px solid black" }}>
-                <div
-                  style={{
-                    width: `${progress}%`,
-                    height: "20px",
-                    backgroundColor: "green"
-                  }}
-                />
-              </div>
-              <p>Progreso: {progress}%</p>
-            </div>
-          )}
-
-          {/* SENSORES */}
-          <h3>Sensores</h3>
-          <ul>
-            <li>Entrada: {sensors.entrada}</li>
-            <li>Salida: {sensors.salida}</li>
-            <li>Ocupación: {sensors.ocupacion}</li>
-            <li>Temperatura: {sensors.temperatura}</li>
-            <li>Nivel de agua: {sensors.nivelAgua}</li>
-          </ul>
         </div>
-      )}
+      </div>
+
+      {/* === PANEL DERECHA (EVENTOS) === */}
+      <div style={{ width: "280px" }}>
+        <h3>Registro de eventos</h3>
+        <div style={{
+          border: "1px solid #ccc",
+          height: "400px",
+          overflowY: "scroll",
+          padding: "10px",
+          borderRadius: "8px"
+        }}>
+          {eventos.map((e, index) => (
+            <p key={index} style={{ fontSize: "14px" }}>
+              <strong>{e.time}</strong> — {e.text}
+            </p>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
