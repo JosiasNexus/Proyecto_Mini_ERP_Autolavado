@@ -7,10 +7,6 @@ function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-function nowStr() {
-  return new Date().toLocaleTimeString()
-}
-
 export default function LavadoManual() {
   const [stations, setStations] = useState(() => {
     // Initialize 4 stations for the demo

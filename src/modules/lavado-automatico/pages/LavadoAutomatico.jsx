@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 
 export default function LavadoAutomatico() {
   // === CREAR ESTACIÓN ===
-  const crearEstacion = () => ({
+  const crearEstacion = useCallback(() => ({
     tunnelState: "Disponible",
     vehicleId: null,
     progress: 0,
@@ -15,7 +15,7 @@ export default function LavadoAutomatico() {
       temperatura: "28°C",
       nivelAgua: "75%"
     }
-  });
+  }), []);
 
   // === ESTADO GENERAL ===
   const [estaciones, setEstaciones] = useState([
@@ -25,15 +25,23 @@ export default function LavadoAutomatico() {
     crearEstacion()
   ]);
 
+  // === INSUMOS CRÍTICOS ===
+  const [insumos, setInsumos] = useState({
+    Shampoo: 100,
+    Cera: 100,
+    Panos: 100,
+    Agua: 100
+  });
+
   const [eventos, setEventos] = useState([]);
 
-  const stages = [
+  const stages = useMemo(() => [
     "Prelavado",
     "Aplicación de espuma",
     "Rodillos",
     "Enjuague a presión",
     "Secado automático"
-  ];
+  ], []);
 
   // === REGISTRAR EVENTOS ===
   const log = (texto) => {
@@ -55,8 +63,17 @@ export default function LavadoAutomatico() {
       e[i].sensors.ocupacion = "100%";
 
       log(`Vehículo entró en Estación ${i + 1}`);
+
       return e;
     });
+
+    // BAJAR INSUMOS
+    setInsumos(prev => ({
+      Shampoo: Math.max(prev.Shampoo - 5, 0),
+      Cera: Math.max(prev.Cera - 3, 0),
+      Panos: Math.max(prev.Panos - 2, 0),
+      Agua: Math.max(prev.Agua - 8, 0)
+    }));
   };
 
   // === INICIAR LAVADO ===
@@ -87,12 +104,17 @@ export default function LavadoAutomatico() {
   };
 
   // === FINALIZAR ===
-  const finalizar = (i) => {
+  const finalizar = useCallback((i) => {
     setEstaciones(prev => {
       const e = [...prev];
+
+      // si está en mantenimiento, NO finalizar
+      if (e[i].tunnelState === "Mantenimiento") return prev;
+
       e[i].tunnelState = "En limpieza";
       e[i].sensors.salida = "Saliendo";
       e[i].sensors.ocupacion = "0%";
+
       log(`Lavado finalizado en Estación ${i + 1}`);
       return e;
     });
@@ -100,29 +122,43 @@ export default function LavadoAutomatico() {
     setTimeout(() => {
       setEstaciones(prev => {
         const e = [...prev];
+
+        if (e[i].tunnelState === "Mantenimiento") return prev;
+
         e[i] = crearEstacion();
-        log(`Estación ${i + 1} ahora está Disponible`);
+        log(`Estación ${i + 1} está Disponible de nuevo`);
         return e;
       });
-    }, 1800);
-  };
+    }, 1600);
+  }, [crearEstacion]);
 
   // === PONER EN MANTENIMIENTO ===
   const ponerMantenimiento = (i) => {
     setEstaciones(prev => {
       const e = [...prev];
 
-      if (e[i].isProcessing) return prev;
+      e[i].isProcessing = false;
+      e[i].progress = 0;
+      e[i].vehicleId = null;
+      e[i].currentStage = "";
 
       e[i].tunnelState = "Mantenimiento";
-      e[i].vehicleId = null;
-      e[i].progress = 0;
-      e[i].currentStage = "";
-      e[i].sensors.ocupacion = "0%";
+
       e[i].sensors.entrada = "Libre";
       e[i].sensors.salida = "Libre";
+      e[i].sensors.ocupacion = "0%";
 
-      log(`Estación ${i + 1} se puso en Mantenimiento`);
+      log(`Estación ${i + 1} pasó a Mantenimiento`);
+      return e;
+    });
+  };
+
+  // === PONER EN SERVICIO ===
+  const ponerEnServicio = (i) => {
+    setEstaciones(prev => {
+      const e = [...prev];
+      e[i] = crearEstacion();
+      log(`Estación ${i + 1} volvió al servicio`);
       return e;
     });
   };
@@ -134,14 +170,14 @@ export default function LavadoAutomatico() {
         const e = [...prev];
 
         e.forEach((est, i) => {
-          if (!est.isProcessing) return;
+          if (!est.isProcessing || est.tunnelState === "Mantenimiento") return;
 
           let next = est.progress + 2;
 
           if (next >= 100) {
+            est.isProcessing = false;
             finalizar(i);
             next = 100;
-            est.isProcessing = false;
           } else {
             const idx = Math.floor((next / 100) * stages.length);
             est.currentStage = stages[Math.min(idx, stages.length - 1)];
@@ -155,7 +191,7 @@ export default function LavadoAutomatico() {
     }, 200);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [stages, finalizar]);
 
   // === CONTADORES ===
   const countDisponible = estaciones.filter(e => e.tunnelState === "Disponible").length;
@@ -191,27 +227,28 @@ export default function LavadoAutomatico() {
 
   return (
     <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
-
-      {/* === PANEL LATERAL === */}
+      
+      {/* PANEL LATERAL */}
       <div style={{ width: "250px" }}>
         <h4>Insumos críticos</h4>
 
-        {[["Shampoo", 88], ["Cera", 95], ["Panos", 99], ["Agua", 81]].map(([n, v]) => (
-          <div key={n}>
-            <span>{n} {v}%</span>
+        {Object.entries(insumos).map(([nombre, valor]) => (
+          <div key={nombre} style={{ marginBottom: "12px" }}>
+            <span>{nombre} {valor}%</span>
             <div style={{ height: "6px", background: "#eee", borderRadius: "4px" }}>
               <div style={{
-                width: `${v}%`,
+                width: `${valor}%`,
                 height: "100%",
-                background: "#28a745",
-                borderRadius: "4px"
+                background: valor > 30 ? "#28a745" : "#c90000",
+                borderRadius: "4px",
+                transition: "0.3s"
               }} />
             </div>
           </div>
         ))}
       </div>
 
-      {/* === PANEL CENTRAL === */}
+      {/* PANEL CENTRAL */}
       <div style={{ flex: 1 }}>
         <h2>Lavado Automático</h2>
 
@@ -222,7 +259,7 @@ export default function LavadoAutomatico() {
           <span><strong>Mantenimiento:</strong> {countMantenimiento}</span>
         </div>
 
-        {/* === ESTACIONES === */}
+        {/* ESTACIONES */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2,1fr)",
@@ -246,37 +283,54 @@ export default function LavadoAutomatico() {
               <p>{e.vehicleId ? `Vehículo: ${e.vehicleId}` : "Sin vehículo"}</p>
 
               {/* BOTONES */}
-              <button
-                style={styles.button}
-                disabled={e.tunnelState !== "Disponible"}
-                onClick={() => simularEntrada(i)}
-              >
-                Simular Entrada
-              </button>
+              {e.tunnelState !== "Mantenimiento" && (
+                <>
+                  <button
+                    style={styles.button}
+                    disabled={e.tunnelState !== "Disponible"}
+                    onClick={() => simularEntrada(i)}
+                  >
+                    Simular Entrada
+                  </button>
 
-              <button
-                style={styles.button}
-                disabled={!e.vehicleId || e.isProcessing}
-                onClick={() => iniciarLavado(i)}
-              >
-                Iniciar Lavado
-              </button>
+                  <button
+                    style={styles.button}
+                    disabled={!e.vehicleId || e.isProcessing}
+                    onClick={() => iniciarLavado(i)}
+                  >
+                    Iniciar Lavado
+                  </button>
 
-              <button
-                style={{ ...styles.button, background: "#6c757d" }}
-                disabled={!e.isProcessing}
-                onClick={() => cancelar(i)}
-              >
-                Cancelar
-              </button>
+                  <button
+                    style={{ ...styles.button, background: "#6c757d" }}
+                    disabled={!e.isProcessing}
+                    onClick={() => cancelar(i)}
+                  >
+                    Cancelar
+                  </button>
 
-              <button
-                style={{ ...styles.button, background: "#b30000" }}
-                disabled={e.isProcessing}
-                onClick={() => ponerMantenimiento(i)}
-              >
-                Mantenimiento
-              </button>
+                  <button
+                    style={{ ...styles.button, background: "#b30000" }}
+                    disabled={e.isProcessing}
+                    onClick={() => ponerMantenimiento(i)}
+                  >
+                    Mantenimiento
+                  </button>
+                </>
+              )}
+
+              {/* BOTÓN poner en servicio */}
+              {e.tunnelState === "Mantenimiento" && (
+                <button
+                  style={{
+                    ...styles.button,
+                    background: "#198754"
+                  }}
+                  onClick={() => ponerEnServicio(i)}
+                >
+                  Poner en Servicio
+                </button>
+              )}
 
               {/* PROCESO */}
               {e.isProcessing && (
@@ -298,7 +352,7 @@ export default function LavadoAutomatico() {
         </div>
       </div>
 
-      {/* === PANEL DERECHA (EVENTOS) === */}
+      {/* PANEL DERECHA */}
       <div style={{ width: "280px" }}>
         <h3>Registro de eventos</h3>
         <div style={{
@@ -315,6 +369,7 @@ export default function LavadoAutomatico() {
           ))}
         </div>
       </div>
+
     </div>
   );
 }
