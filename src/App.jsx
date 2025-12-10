@@ -1,3 +1,4 @@
+import React from 'react'
 import './App.css'
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
 import Inicio from './modules/inicio/pages/Inicio'
@@ -6,7 +7,8 @@ import LavadoAutomatico from './modules/lavado-automatico/pages/LavadoAutomatico
 import Reportes from './modules/reportes/pages/Reportes'
 
 function App() {
-  
+  // app-level state removed (unused)
+
   return (
     <Router>
       <header className="header">
