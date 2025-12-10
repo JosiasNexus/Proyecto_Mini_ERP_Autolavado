@@ -1,0 +1,60 @@
+/* CONTENEDOR PRINCIPAL */
+.reportes-root {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* TÍTULO */
+.reportes-title {
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* GRIDS DE BOTONES */
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* BOTONES */
+.btn-grid button {
+  padding: 12px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+}
+
+.btn-grid button:hover {
+  background: #115a9c;
+}
+
+/* GRID DE ABAJO */
+.reportes-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  width: 100%;
+  padding: 0 80px;
+}
+
+/* CAJAS (antes h-64 border rounded-2xl shadow) */
+.report-box {
+  height: 256px;                /* h-64 */
+  border: 1px solid #e5e7eb;     /* border */
+  border-radius: 16px;           /* rounded-2xl */
+  box-shadow:                    /* shadow */
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  background: #fff;
+}
