@@ -1,6 +1,6 @@
-import express from 'express';
-import cors from 'cors';
-import mysql from 'mysql2';
+const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2');
 
 const PORT = 3000;
 
@@ -24,7 +24,7 @@ db.connect(err => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Hello New Contact');
+    res.send('API funcionando correctamente.');
 });
 
 app.listen(PORT, () => {
