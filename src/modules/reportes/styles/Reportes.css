@@ -1,0 +1,135 @@
+/* CONTENEDOR PRINCIPAL */
+.reportes-root {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* TÍTULO */
+.reportes-title {
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* GRIDS DE BOTONES */
+.btn-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+  justify-items: center;
+  align-items: center;
+}
+
+/* Top buttons: 4 columns, centered */
+.btn-grid-top {
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Bottom buttons: 5 columns, centered and allow wrapping on small screens */
+.btn-grid-bottom {
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* BOTONES */
+.btn-grid button {
+  padding: 10px 14px;
+  background: #1976d2;
+  color: white;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.1;
+  white-space: pre-wrap;
+}
+
+.btn-grid button:hover {
+  background: #115a9c;
+}
+
+
+/* CONTENEDOR DEL REPORTE */
+.reportes-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 32px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reportes-container h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1f2937;
+}
+
+/* CONTENEDOR DE LA TABLA */
+.table-container {
+  overflow-x: auto;
+}
+
+/* TABLA */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.report-table thead {
+  background-color: #1976d2;
+}
+
+.report-table th {
+  padding: 12px;
+  text-align: left;
+  color: white;
+  font-weight: 600;
+  border-bottom: 2px solid #1565c0;
+}
+
+.report-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.report-table tbody tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* TEXTOS DE ESTADO */
+.loading-text {
+  text-align: center;
+  color: #1976d2;
+  font-weight: 500;
+  padding: 20px;
+}
+
+.error-text {
+  text-align: center;
+  color: #d32f2f;
+  font-weight: 500;
+  padding: 20px;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
+
+.no-data-text {
+  text-align: center;
+  color: #9ca3af;
+  font-weight: 500;
+  padding: 20px;
+}
